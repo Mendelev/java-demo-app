@@ -50,6 +50,6 @@ class TodoControllerTest {
                 result.getResponse().getContentAsString(), new TypeReference<>() {});
 
         assertThat(todos).isNotEmpty();
-        assertThat(todos.get(0).getTitle()).isEqualTo("Test task");
+        assertThat(todos.getFirst().getTitle()).isEqualTo("Test task");
     }
 }
