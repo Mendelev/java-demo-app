@@ -13,3 +13,7 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+
+todo:
+  cors:
+    allowed-origins: http://localhost:5173
