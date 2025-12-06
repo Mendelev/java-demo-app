@@ -1,0 +1,89 @@
+pipeline:
+  name: build_and_test_pipeline
+  identifier: build_and_test_pipeline
+  projectIdentifier: javatodoapp
+  orgIdentifier: default
+  tags: {}
+  properties:
+    ci:
+      codebase:
+        connectorRef: githubmendelev
+        build: <+input>
+  stages:
+    - stage:
+        name: build
+        identifier: build
+        description: ""
+        type: CI
+        spec:
+          cloneCodebase: true
+          caching:
+            enabled: true
+            override: true
+          buildIntelligence:
+            enabled: true
+          platform:
+            os: Linux
+            arch: Arm64
+          runtime:
+            type: Cloud
+            spec:
+              imageSpec:
+                imageName: ubuntu-latest
+          execution:
+            steps:
+              - step:
+                  type: GitClone
+                  name: GitClone_1
+                  identifier: GitClone_1
+                  spec:
+                    connectorRef: githubmendelev
+                    build:
+                      type: branch
+                      spec:
+                        branch: main
+              - step:
+                  type: Run
+                  name: Unit test
+                  identifier: Unit_test
+                  spec:
+                    shell: Sh
+                    command: mvn -B test
+              - step:
+                  type: Run
+                  name: Compute_Semver
+                  identifier: Compute_Semver
+                  spec:
+                    shell: Sh
+                    command: |-
+                      #!/bin/bash
+                      set -e
+
+                      # 1) Get the last git tag (fallback to 0.0.0)
+                      LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "0.0.0")
+                      echo "Last tag: $LAST_TAG"
+
+                      # 2) Split into major.minor.patch
+                      IFS='.' read -r MAJOR MINOR PATCH <<< "$LAST_TAG"
+
+                      # 3) Bump what you want (here: PATCH)
+                      PATCH=$((PATCH+1))
+
+                      NEW_TAG="${MAJOR}.${MINOR}.${PATCH}"
+                      echo "New tag: $NEW_TAG"
+
+                      # 4) Export to Harness so next steps can read it
+                      echo "IMAGE_TAG=$NEW_TAG" >> "$HARNESS_ENV_EXPORT_FILE"
+                    outputVariables:
+                      - name: IMAGE_TAG
+                        type: String
+                        value: TEMP
+              - step:
+                  type: BuildAndPushDockerRegistry
+                  name: BuildAndPush_Backend
+                  identifier: BuildAndPush_Backend
+                  spec:
+                    connectorRef: mendelev_dockerhub
+                    repo: yuridevpro/todo-app-java-backend
+                    tags:
+                      - <+execution.steps.Compute_Semver.output.outputVariables.IMAGE_TAG>
