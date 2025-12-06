@@ -95,20 +95,12 @@ pipeline:
                     context: backend
                     dockerfile: backend/Dockerfile
               - step:
-                  type: AquaTrivy
+                  type: Run
                   name: SAST
                   identifier: SAST
                   spec:
-                    mode: orchestration
-                    config: default
-                    target:
-                      type: container
-                      detection: auto
-                    advanced:
-                      log:
-                        level: info
-                    privileged: true
-                    image:
-                      type: docker_v2
-                      tag: <+execution.steps.Compute_Semver.output.outputVariables.IMAGE_TAG>
-                      name: yuridevpro/todo-app-java-backend
+                    image: aquasec/trivy:latest
+                    shell: Sh
+                    command: |-
+                      trivy image --severity HIGH,CRITICAL --exit-code 0 \
+                        yuridevpro/todo-app-java-backend:<+execution.steps.Compute_Semver.output.outputVariables.IMAGE_TAG>
