@@ -77,3 +77,5 @@ pipeline:
                     repo: yuridevpro/todo-app-java-backend
                     tags:
                       - <+execution.steps.Compute_Semver.output.outputVariables.IMAGE_TAG>
+                    context: backend
+                    dockerfile: backend/Dockerfile
