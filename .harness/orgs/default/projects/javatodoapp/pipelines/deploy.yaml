@@ -1,0 +1,44 @@
+pipeline:
+  name: deploy
+  identifier: deploy
+  projectIdentifier: javatodoapp
+  orgIdentifier: default
+  tags: {}
+  stages:
+    - stage:
+        name: Deploy on k8s
+        identifier: Deploy_on_k8s
+        description: ""
+        type: Deployment
+        spec:
+          deploymentType: NativeHelm
+          service:
+            serviceRef: javatodoappservice
+          environment:
+            environmentRef: myk8slocal
+            deployToAll: false
+            infrastructureDefinitions:
+              - identifier: infraestrutucrek8slocal
+          execution:
+            steps:
+              - step:
+                  name: Helm Deployment
+                  identifier: helmDeployment
+                  type: HelmDeploy
+                  timeout: 10m
+                  spec:
+                    skipDryRun: false
+            rollbackSteps:
+              - step:
+                  name: Helm Rollback
+                  identifier: helmRollback
+                  type: HelmRollback
+                  timeout: 10m
+                  spec: {}
+        tags: {}
+        failureStrategies:
+          - onFailure:
+              errors:
+                - AllErrors
+              action:
+                type: StageRollback
