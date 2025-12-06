@@ -79,3 +79,21 @@ pipeline:
                       - <+execution.steps.Compute_Semver.output.outputVariables.IMAGE_TAG>
                     context: backend
                     dockerfile: backend/Dockerfile
+              - step:
+                  type: AquaTrivy
+                  name: SAST
+                  identifier: SAST
+                  spec:
+                    mode: orchestration
+                    config: default
+                    target:
+                      type: container
+                      detection: auto
+                    advanced:
+                      log:
+                        level: info
+                    privileged: true
+                    image:
+                      type: docker_v2
+                      tag: <+execution.steps.Compute_Semver.output.outputVariables.IMAGE_TAG>
+                      name: yuridevpro/todo-app-java-backend
