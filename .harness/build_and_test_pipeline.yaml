@@ -65,11 +65,9 @@ pipeline:
                       echo "New tag: $NEW_TAG"
 
                       # 4) Export to Harness so next steps can read it
-                      echo "IMAGE_TAG=$NEW_TAG" >> "$HARNESS_ENV_EXPORT_FILE"
+                      export IMAGE_TAG="$NEW_TAG"
                     outputVariables:
                       - name: IMAGE_TAG
-                        type: String
-                        value: TEMP
               - step:
                   type: BuildAndPushDockerRegistry
                   name: BuildAndPush_Backend
