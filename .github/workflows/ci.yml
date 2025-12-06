@@ -92,6 +92,20 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Build and push backend (kubernetes tags)
+        if: matrix.name == 'backend' && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/build-push-action@v6
+        with:
+          context: ./${{ matrix.context }}
+          file: ./${{ matrix.dockerfile }}
+          push: true
+          tags: |
+            ${{ matrix.image }}:latest-kubernetes
+            ${{ matrix.image }}:${{ github.sha }}-kubernetes
+          platforms: linux/amd64,linux/arm64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
   integration-tests:
     name: Integration tests
     needs: test-backend
