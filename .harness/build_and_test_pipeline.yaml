@@ -144,41 +144,45 @@ pipeline:
                     context: frontend
                     dockerfile: frontend/Dockerfile
               - step:
-                  type: Run
-                  name: SAST Backend
-                  identifier: SAST_Backend
+                  type: AquaTrivy
+                  name: SAST_Backend1
+                  identifier: SAST_Backend1
                   spec:
-                    image: aquasec/trivy:latest
-                    shell: Sh
-                    command: |-
-                      trivy image --severity HIGH,CRITICAL --exit-code 0 \
-                        --format sarif --output /harness/backend-trivy.sarif \
-                        yuridevpro/todo-app-java-backend:<+execution.steps.Compute_Semver.output.outputVariables.IMAGE_TAG>
-                    reports:
-                      type: SARIF
-                      spec:
-                        paths:
-                          - /harness/backend-trivy.sarif
+                    mode: orchestration
+                    config: default
+                    target:
+                      type: container
+                      detection: auto
+                    advanced:
+                      log:
+                        level: info
+                    privileged: true
+                    image:
+                      type: docker_v2
+                      tag: 0.0.1
+                      name: yuridevpro/todo-app-java-backend
               - step:
-                  type: Run
-                  name: SAST Frontend
+                  type: AquaTrivy
+                  name: SAST_Frontend
                   identifier: SAST_Frontend
                   spec:
-                    image: aquasec/trivy:latest
-                    shell: Sh
-                    command: |-
-                      trivy image --severity HIGH,CRITICAL --exit-code 0 \
-                        --format sarif --output /harness/frontend-trivy.sarif \
-                        yuridevpro/todo-app-java-frontend:<+execution.steps.Compute_Semver.output.outputVariables.IMAGE_TAG>
-                    reports:
-                      type: SARIF
-                      spec:
-                        paths:
-                          - /harness/frontend-trivy.sarif
+                    mode: orchestration
+                    config: default
+                    target:
+                      type: container
+                      detection: auto
+                    advanced:
+                      log:
+                        level: info
+                    privileged: true
+                    image:
+                      type: docker_v2
+                      tag: 0.0.1
+                      name: yuridevpro/todo-app-java-frontend
     - stage:
         name: Deploy to K8s
         identifier: Deploy_to_K8s
-        description: "Deploy to Kubernetes after successful build"
+        description: Deploy to Kubernetes after successful build
         type: Deployment
         spec:
           deploymentType: NativeHelm
