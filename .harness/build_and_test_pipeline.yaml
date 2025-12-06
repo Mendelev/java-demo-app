@@ -42,6 +42,21 @@ pipeline:
                     command: cd backend && mvn -B test
               - step:
                   type: Run
+                  name: Integration tests
+                  identifier: Integration_tests
+                  spec:
+                    image: maven:3.9-eclipse-temurin-21
+                    shell: Bash
+                    privileged: true
+                    command: |-
+                      # Install Docker CLI
+                      apt-get update && apt-get install -y docker.io docker-compose
+
+                      # Run integration tests
+                      cd backend
+                      bash scripts/run-integration-tests.sh
+              - step:
+                  type: Run
                   name: Compute_Semver
                   identifier: Compute_Semver
                   spec:
