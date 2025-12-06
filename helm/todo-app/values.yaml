@@ -5,14 +5,15 @@ backend:
   replicaCount: 1
   image:
     repository: yuridevpro/todo-app-java-backend
-    tag: "latest"
+    tag: "latest-kubernetes"
     pullPolicy: IfNotPresent
   service:
-    type: ClusterIP
+    type: NodePort
     port: 8080
+    nodePort: 30081
   env:
     db:
-      host: db
+      host: "" # defaults to internal postgres service when empty
       port: 5432
       name: todoapp
       user: todo
@@ -27,13 +28,14 @@ frontend:
   replicaCount: 1
   image:
     repository: yuridevpro/todo-app-java-frontend
-    tag: "latest"
+    tag: "latest-kubernetes"
     pullPolicy: IfNotPresent
   service:
-    type: ClusterIP
+    type: NodePort
     port: 80
+    nodePort: 30082
   env:
-    apiUrl: http://todo-app-backend:8080
+    apiUrl: http://localhost:30081
   resources: {}
   nodeSelector: {}
   tolerations: []
@@ -49,3 +51,16 @@ ingress:
         - path: /
           pathType: Prefix
   tls: []
+
+postgres:
+  enabled: true
+  image: postgres:15-alpine
+  username: todo
+  password: todo
+  database: todoapp
+  service:
+    port: 5432
+  persistence:
+    enabled: false
+    size: 1Gi
+    storageClass: ""

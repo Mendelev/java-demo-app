@@ -74,6 +74,24 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Build and push frontend (kubernetes tag with NodePort API)
+        if: matrix.name == 'frontend' && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          FRONTEND_API_URL_K8S: http://localhost:30081
+        uses: docker/build-push-action@v6
+        with:
+          context: ./${{ matrix.context }}
+          file: ./${{ matrix.dockerfile }}
+          build-args: |
+            VITE_API_URL=${{ env.FRONTEND_API_URL_K8S }}
+          push: true
+          tags: |
+            ${{ matrix.image }}:latest-kubernetes
+            ${{ matrix.image }}:${{ github.sha }}-kubernetes
+          platforms: linux/amd64,linux/arm64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
   integration-tests:
     name: Integration tests
     needs: test-backend
