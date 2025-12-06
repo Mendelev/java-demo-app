@@ -47,6 +47,8 @@ pipeline:
                   name: Unit test
                   identifier: Unit_test
                   spec:
+                    image: maven:3.9-eclipse-temurin-21
+                    workingDirectory: backend
                     shell: Sh
                     command: mvn -B test
               - step:
