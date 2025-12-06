@@ -178,37 +178,44 @@ pipeline:
                       tag: <+execution.steps.Compute_Semver.output.outputVariables.IMAGE_TAG>
                       name: yuridevpro/todo-app-java-frontend
               - step:
-                  type: GitClone
+                  type: Run
                   name: Push Git Tag
                   identifier: Push_Git_Tag
                   spec:
-                    connectorRef: githubmendelev
-                    repoName: Mendelev/java-demo-app
-                    build:
-                      type: branch
-                      spec:
-                        branch: main
-                    cloneDirectory: /harness/tag-repo
-              - step:
-                  type: Run
-                  name: Create and Push Tag
-                  identifier: Create_Push_Tag
-                  spec:
                     shell: Bash
+                    envVariables:
+                      GITHUB_TOKEN: <+secrets.getValue("githubpat")>
                     command: |-
                       set -e
-                      cd /harness/tag-repo
                       NEW_TAG="<+execution.steps.Compute_Semver.output.outputVariables.IMAGE_TAG>"
-                      echo "Pushing tag: $NEW_TAG"
-
-                      git config user.email "ci@harness.io"
-                      git config user.name "Harness CI"
-
-                      # Create and push the tag
-                      git tag -a "$NEW_TAG" -m "Release $NEW_TAG"
-                      git push origin "$NEW_TAG"
-
-                      echo "Successfully pushed tag $NEW_TAG"
+                      REPO="Mendelev/java-demo-app"
+                      COMMIT_SHA="<+codebase.commitSha>"
+                      
+                      echo "Creating tag: $NEW_TAG for commit: $COMMIT_SHA"
+                      
+                      # Create the tag object
+                      TAG_RESPONSE=$(curl -s -X POST \
+                        -H "Authorization: token $GITHUB_TOKEN" \
+                        -H "Accept: application/vnd.github.v3+json" \
+                        "https://api.github.com/repos/$REPO/git/tags" \
+                        -d "{\"tag\":\"$NEW_TAG\",\"message\":\"Release $NEW_TAG\",\"object\":\"$COMMIT_SHA\",\"type\":\"commit\",\"tagger\":{\"name\":\"Harness CI\",\"email\":\"ci@harness.io\"}}")
+                      
+                      TAG_SHA=$(echo "$TAG_RESPONSE" | grep -o '"sha": "[^"]*"' | head -1 | cut -d'"' -f4)
+                      
+                      if [ -z "$TAG_SHA" ]; then
+                        echo "Failed to create tag object. Response: $TAG_RESPONSE"
+                        exit 1
+                      fi
+                      
+                      # Create the reference
+                      REF_RESPONSE=$(curl -s -X POST \
+                        -H "Authorization: token $GITHUB_TOKEN" \
+                        -H "Accept: application/vnd.github.v3+json" \
+                        "https://api.github.com/repos/$REPO/git/refs" \
+                        -d "{\"ref\":\"refs/tags/$NEW_TAG\",\"sha\":\"$TAG_SHA\"}")
+                      
+                      echo "Successfully created tag $NEW_TAG"
+                      echo "Response: $REF_RESPONSE"
     - stage:
         name: Deploy to K8s
         identifier: Deploy_to_K8s
