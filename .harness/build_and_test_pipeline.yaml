@@ -145,11 +145,33 @@ pipeline:
                     dockerfile: frontend/Dockerfile
               - step:
                   type: Run
-                  name: SAST
-                  identifier: SAST
+                  name: SAST Backend
+                  identifier: SAST_Backend
                   spec:
                     image: aquasec/trivy:latest
                     shell: Sh
                     command: |-
                       trivy image --severity HIGH,CRITICAL --exit-code 0 \
+                        --format sarif --output /harness/backend-trivy.sarif \
                         yuridevpro/todo-app-java-backend:<+execution.steps.Compute_Semver.output.outputVariables.IMAGE_TAG>
+                    reports:
+                      type: SARIF
+                      spec:
+                        paths:
+                          - /harness/backend-trivy.sarif
+              - step:
+                  type: Run
+                  name: SAST Frontend
+                  identifier: SAST_Frontend
+                  spec:
+                    image: aquasec/trivy:latest
+                    shell: Sh
+                    command: |-
+                      trivy image --severity HIGH,CRITICAL --exit-code 0 \
+                        --format sarif --output /harness/frontend-trivy.sarif \
+                        yuridevpro/todo-app-java-frontend:<+execution.steps.Compute_Semver.output.outputVariables.IMAGE_TAG>
+                    reports:
+                      type: SARIF
+                      spec:
+                        paths:
+                          - /harness/frontend-trivy.sarif
