@@ -133,6 +133,17 @@ pipeline:
                     context: backend
                     dockerfile: backend/Dockerfile
               - step:
+                  type: BuildAndPushDockerRegistry
+                  name: BuildAndPush_Frontend
+                  identifier: BuildAndPush_Frontend
+                  spec:
+                    connectorRef: mendelev_dockerhub
+                    repo: yuridevpro/todo-app-java-frontend
+                    tags:
+                      - <+execution.steps.Compute_Semver.output.outputVariables.IMAGE_TAG>
+                    context: frontend
+                    dockerfile: frontend/Dockerfile
+              - step:
                   type: Run
                   name: SAST
                   identifier: SAST
