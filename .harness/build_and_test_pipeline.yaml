@@ -42,20 +42,46 @@ pipeline:
                     shell: Sh
                     command: cd backend && mvn -B test
               - step:
+                  type: Background
+                  name: postgres
+                  identifier: postgres
+                  spec:
+                    image: postgres:15-alpine
+                    shell: Sh
+                    envVariables:
+                      POSTGRES_DB: todoapp_int
+                      POSTGRES_USER: todo
+                      POSTGRES_PASSWORD: todo
+                    portBindings:
+                      "5432": "5432"
+              - step:
                   type: Run
                   name: Integration tests
                   identifier: Integration_tests
                   spec:
                     image: maven:3.9-eclipse-temurin-21
                     shell: Bash
-                    privileged: true
+                    envVariables:
+                      TEST_DB_HOST: postgres
+                      TEST_DB_PORT: "5432"
+                      TEST_DB_NAME: todoapp_int
+                      TEST_DB_USER: todo
+                      TEST_DB_PASSWORD: todo
                     command: |-
-                      # Install Docker CLI
-                      apt-get update && apt-get install -y docker.io docker-compose
+                      # Wait for Postgres to be ready
+                      echo "Waiting for Postgres..."
+                      for i in {1..30}; do
+                        if nc -z postgres 5432 2>/dev/null; then
+                          echo "Postgres is ready!"
+                          break
+                        fi
+                        echo "Attempt $i: Postgres not ready yet..."
+                        sleep 2
+                      done
 
                       # Run integration tests
                       cd backend
-                      bash scripts/run-integration-tests.sh
+                      mvn -B -P integration-tests test
               - step:
                   type: Run
                   name: Compute_Semver
