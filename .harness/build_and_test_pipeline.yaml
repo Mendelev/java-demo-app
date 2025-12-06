@@ -41,6 +41,11 @@ pipeline:
                     image: maven:3.9-eclipse-temurin-21
                     shell: Sh
                     command: cd backend && mvn -B test
+                    reports:
+                      type: JUnit
+                      spec:
+                        paths:
+                          - "**/target/surefire-reports/*.xml"
               - step:
                   type: Background
                   name: postgres
@@ -82,6 +87,12 @@ pipeline:
                       # Run integration tests
                       cd backend
                       mvn -B -P integration-tests test
+                    reports:
+                      type: JUnit
+                      spec:
+                        paths:
+                          - "**/target/failsafe-reports/*.xml"
+                          - "**/target/surefire-reports/*.xml"
               - step:
                   type: Run
                   name: Compute_Semver
