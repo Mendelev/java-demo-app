@@ -175,3 +175,40 @@ pipeline:
                       spec:
                         paths:
                           - /harness/frontend-trivy.sarif
+    - stage:
+        name: Deploy to K8s
+        identifier: Deploy_to_K8s
+        description: "Deploy to Kubernetes after successful build"
+        type: Deployment
+        spec:
+          deploymentType: NativeHelm
+          service:
+            serviceRef: javatodoappservice
+          environment:
+            environmentRef: myk8slocal
+            deployToAll: false
+            infrastructureDefinitions:
+              - identifier: infraestrutucrek8slocal
+          execution:
+            steps:
+              - step:
+                  name: Helm Deployment
+                  identifier: helmDeployment
+                  type: HelmDeploy
+                  timeout: 10m
+                  spec:
+                    skipDryRun: false
+            rollbackSteps:
+              - step:
+                  name: Helm Rollback
+                  identifier: helmRollback
+                  type: HelmRollback
+                  timeout: 10m
+                  spec: {}
+        tags: {}
+        failureStrategies:
+          - onFailure:
+              errors:
+                - AllErrors
+              action:
+                type: StageRollback
