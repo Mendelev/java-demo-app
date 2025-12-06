@@ -1,0 +1,13 @@
+infrastructureDefinition:
+  name: infraestrutucre-k8s-local
+  identifier: infraestrutucrek8slocal
+  orgIdentifier: default
+  projectIdentifier: javatodoapp
+  environmentRef: myk8slocal
+  deploymentType: NativeHelm
+  type: KubernetesDirect
+  spec:
+    connectorRef: myk8slocaconnector
+    namespace: default
+    releaseName: release-<+INFRA_KEY_SHORT_ID>
+  allowSimultaneousDeployments: false

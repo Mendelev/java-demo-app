@@ -1,0 +1,6 @@
+environment:
+  name: my-k8s-local
+  identifier: myk8slocal
+  orgIdentifier: default
+  projectIdentifier: javatodoapp
+  type: PreProduction

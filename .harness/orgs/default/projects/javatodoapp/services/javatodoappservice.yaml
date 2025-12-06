@@ -1,0 +1,28 @@
+service:
+  name: javatodoapp-service
+  identifier: javatodoappservice
+  orgIdentifier: default
+  projectIdentifier: javatodoapp
+  serviceDefinition:
+    spec:
+      manifests:
+        - manifest:
+            identifier: todomanifest
+            type: HelmChart
+            spec:
+              store:
+                type: Github
+                spec:
+                  connectorRef: githubmendelev
+                  gitFetchType: Branch
+                  folderPath: helm/todo-app
+                  branch: main
+              subChartPath: ""
+              valuesPaths:
+                - helm/todo-app/values.yaml
+              optionalValuesYaml: false
+              skipResourceVersioning: false
+              enableDeclarativeRollback: false
+              helmVersion: V3
+              fetchHelmChartMetadata: false
+    type: NativeHelm
