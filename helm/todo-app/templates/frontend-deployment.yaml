@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "todo-app.fullname" . }}-frontend
+  labels:
+    {{- include "todo-app.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.frontend.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "todo-app.name" . }}-frontend
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "todo-app.name" . }}-frontend
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      imagePullSecrets:
+        {{- if .Values.global.imagePullSecrets }}
+        {{- toYaml .Values.global.imagePullSecrets | nindent 8 }}
+        {{- end }}
+      containers:
+        - name: frontend
+          image: "{{ .Values.frontend.image.repository }}:{{ .Values.frontend.image.tag }}"
+          imagePullPolicy: {{ .Values.frontend.image.pullPolicy }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "todo-app.fullname" . }}-frontend-config
+          ports:
+            - containerPort: 80
+              name: http
+          resources:
+            {{- toYaml .Values.frontend.resources | nindent 12 }}
+      nodeSelector:
+        {{- toYaml .Values.frontend.nodeSelector | nindent 8 }}
+      tolerations:
+        {{- toYaml .Values.frontend.tolerations | nindent 8 }}
+      affinity:
+        {{- toYaml .Values.frontend.affinity | nindent 8 }}
