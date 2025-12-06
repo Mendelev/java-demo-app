@@ -33,24 +33,13 @@ pipeline:
           execution:
             steps:
               - step:
-                  type: GitClone
-                  name: GitClone_1
-                  identifier: GitClone_1
-                  spec:
-                    connectorRef: githubmendelev
-                    build:
-                      type: branch
-                      spec:
-                        branch: main
-              - step:
                   type: Run
                   name: Unit test
                   identifier: Unit_test
                   spec:
                     image: maven:3.9-eclipse-temurin-21
-                    workingDirectory: backend
                     shell: Sh
-                    command: mvn -B test
+                    command: cd backend && mvn -B test
               - step:
                   type: Run
                   name: Compute_Semver
