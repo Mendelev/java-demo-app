@@ -1,0 +1,5 @@
+service:
+  name: javatodoapp-service
+  identifier: javatodoappservice
+  orgIdentifier: default
+  projectIdentifier: javatodoapp
