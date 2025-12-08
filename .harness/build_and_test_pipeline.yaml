@@ -184,7 +184,7 @@ pipeline:
                   spec:
                     shell: Bash
                     envVariables:
-                      GITHUB_TOKEN: <+secrets.getValue("githubpat")>
+                      GITHUB_TOKEN: <+secrets.getValue("login-github")>
                     command: |-
                       set -e
                       NEW_TAG="<+execution.steps.Compute_Semver.output.outputVariables.IMAGE_TAG>"
