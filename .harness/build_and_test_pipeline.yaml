@@ -100,16 +100,31 @@ pipeline:
                     command: |-
                       set -e
 
-                      # 1) Get the last git tag (fallback to 0.0.0)
-                      LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "0.0.0")
-                      echo "Last tag: $LAST_TAG"
+                      REPO="Mendelev/java-demo-app"
+                      
+                      # 1) Fetch all tags from GitHub API to get the latest
+                      echo "Fetching tags from GitHub..."
+                      TAGS_RESPONSE=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+                        -H "Accept: application/vnd.github.v3+json" \
+                        "https://api.github.com/repos/$REPO/tags?per_page=100")
+                      
+                      # Extract tag names and find the highest semver
+                      LAST_TAG=$(echo "$TAGS_RESPONSE" | grep -o '"name": "[0-9]*\.[0-9]*\.[0-9]*"' | \
+                        cut -d'"' -f4 | sort -t. -k1,1n -k2,2n -k3,3n | tail -1)
+                      
+                      if [ -z "$LAST_TAG" ]; then
+                        LAST_TAG="0.0.0"
+                        echo "No existing semver tags found, starting from 0.0.0"
+                      else
+                        echo "Latest tag from GitHub: $LAST_TAG"
+                      fi
 
                       # 2) Split into major.minor.patch
                       MAJOR=$(echo "$LAST_TAG" | cut -d. -f1)
                       MINOR=$(echo "$LAST_TAG" | cut -d. -f2)
                       PATCH=$(echo "$LAST_TAG" | cut -d. -f3)
 
-                      # 3) Bump what you want (here: PATCH)
+                      # 3) Bump PATCH version
                       PATCH=$((PATCH+1))
 
                       NEW_TAG="${MAJOR}.${MINOR}.${PATCH}"
@@ -117,6 +132,8 @@ pipeline:
 
                       # 4) Export to Harness so next steps can read it
                       export IMAGE_TAG="$NEW_TAG"
+                    envVariables:
+                      GITHUB_TOKEN: <+secrets.getValue("login-github")>
                     outputVariables:
                       - name: IMAGE_TAG
               - step:
