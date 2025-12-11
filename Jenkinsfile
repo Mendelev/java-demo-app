@@ -1,7 +1,7 @@
 pipeline {
   agent any
   parameters {
-    string(name: 'TARGET_HOST', defaultValue: '', description: 'Target VM hostname or IP (e.g. 192.168.1.50)')
+    string(name: 'TARGET_HOST', defaultValue: '20.109.52.203', description: 'Target VM hostname or IP (e.g. 192.168.1.50)')
     string(name: 'TARGET_PORT', defaultValue: '22', description: 'SSH port for target VM (default 22)')
   }
   environment {
