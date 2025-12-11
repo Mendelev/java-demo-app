@@ -32,13 +32,13 @@ services:
       db:
         condition: service_healthy
     ports:
-      - "8080:8080"
+      - "8082:8080"
 
   frontend:
     image: yuridevpro/todo-app-java-frontend:${IMAGE_TAG:-latest}
     container_name: todo-frontend
     environment:
-      VITE_API_URL: ${VITE_API_URL:-http://localhost:8080}
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:8082}
     depends_on:
       - backend
     ports:
