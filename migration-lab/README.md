@@ -1,6 +1,6 @@
 # Migration Lab: Phase 1 (Jenkins + Target VM)
 
-This docker-compose stack starts Jenkins and a target Ubuntu VM on the `migration-lab` network.
+This docker-compose stack now only starts the target Ubuntu VM on the `migration-lab` network. Jenkins runs on your separate VM.
 
 ## Start the lab
 
@@ -9,14 +9,16 @@ cd migration-lab
 docker compose up -d --build
 ```
 
-## Jenkins
-
-- URL: http://localhost:8080
-- Initial admin password: `docker logs migration-jenkins | grep -m1 'Please use the following password' -A 1`
-- Plugins to install: Suggested plugins, plus **Docker Pipeline** and **SSH Agent**.
-
 ## Target VM
 
-- SSH: `ssh deploy@localhost -p 2222` (password: `password`)
+- SSH: `ssh deploy@<host-ip> -p 2222` (password: `password`)
 - Docker-in-Docker is started automatically so Jenkins can run `docker run` via SSH.
-- Port 80 is mapped to the host, allowing the deployed app to be reachable at http://localhost:80 once the Jenkins pipeline runs `docker run -d -p 80:8080 <image>`.
+- Port 80 is mapped to the host, allowing the deployed app to be reachable at http://<host-ip>:80 once the Jenkins pipeline runs `docker run -d -p 80:8080 <image>`.
+
+## Jenkins (running on your VM)
+
+- Ensure Docker is installed on the Jenkins VM so the pipeline can `docker build`/`push`.
+- Install plugins: Suggested, plus **Docker Pipeline** and **SSH Agent**.
+- Add credentials:
+  - Docker Hub username/password.
+  - SSH username/password (deploy/password) pointing to `<host-ip>:2222` for the target VM container.
