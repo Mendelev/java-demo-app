@@ -1,11 +1,8 @@
 pipeline {
   agent any
-  tools {
-    // Configure these in "Manage Jenkins > Global Tool Configuration"
-    jdk 'jdk21'
-    maven 'maven-3.9'
-  }
   environment {
+    JAVA_HOME      = "/usr/lib/jvm/java-21-openjdk-amd64" // adjust if different on your node
+    PATH           = "${JAVA_HOME}/bin:${PATH}"
     IMAGE          = "yuridevpro/todo-app-java-backend"
     DOCKER_CREDS   = "dockerhub-creds"
     SSH_CREDS      = "target-vm-ssh"
