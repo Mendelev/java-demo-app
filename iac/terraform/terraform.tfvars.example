@@ -1,0 +1,22 @@
+# Copy this file to terraform.tfvars and customize as needed
+
+# Prefix for all Azure resources
+resource_prefix = "todo-app"
+
+# Azure region (e.g., "East US", "West Europe", "Brazil South")
+location = "East US"
+
+# Admin username for SSH access
+admin_username = "azureuser"
+
+# VM size (Standard_B1s is free-tier eligible)
+vm_size = "Standard_B1s"
+
+# IP allowed to SSH (set to your IP for security, or "*" for any)
+# Find your IP: curl ifconfig.me
+allowed_ssh_ip = "*"
+
+# Database configuration
+db_name     = "todoapp"
+db_user     = "todo"
+db_password = "todo"

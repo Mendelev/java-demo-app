@@ -5,3 +5,22 @@ dist/
 .vscode/
 .DS_Store
 *.log
+
+# Terraform
+iac/terraform/.terraform/
+iac/terraform/.terraform.lock.hcl
+iac/terraform/*.tfstate
+iac/terraform/*.tfstate.*
+iac/terraform/*.tfvars
+!iac/terraform/*.tfvars.example
+iac/terraform/keys/
+iac/terraform/crash.log
+iac/terraform/override.tf
+iac/terraform/override.tf.json
+iac/terraform/*_override.tf
+iac/terraform/*_override.tf.json
+
+# Ansible
+iac/ansible/inventory.ini
+iac/ansible/files/.env
+iac/ansible/*.retry

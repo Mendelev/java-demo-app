@@ -1,0 +1,39 @@
+version: "3.9"
+
+networks:
+  migration-lab:
+    name: migration-lab
+    driver: bridge
+
+volumes:
+  jenkins-home: {}
+
+services:
+  jenkins:
+    image: jenkins/jenkins:lts
+    container_name: migration-jenkins
+    user: root
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+      - "50000:50000"
+    volumes:
+      - jenkins-home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /usr/bin/docker:/usr/bin/docker
+    networks:
+      - migration-lab
+    environment:
+      - JAVA_OPTS=-Djenkins.install.runSetupWizard=true
+
+  target-vm:
+    build:
+      context: ./target-vm
+    container_name: target-vm
+    privileged: true
+    restart: unless-stopped
+    networks:
+      - migration-lab
+    ports:
+      - "80:80"
+      - "2222:22"
