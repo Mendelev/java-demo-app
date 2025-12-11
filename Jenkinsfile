@@ -1,5 +1,10 @@
 pipeline {
   agent any
+  tools {
+    // Configure these in "Manage Jenkins > Global Tool Configuration"
+    jdk 'jdk21'
+    maven 'maven-3.9'
+  }
   environment {
     IMAGE          = "yuridevpro/todo-app-java-backend"
     DOCKER_CREDS   = "dockerhub-creds"
