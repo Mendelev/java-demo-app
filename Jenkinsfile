@@ -2,6 +2,7 @@ pipeline {
   agent any
   parameters {
     string(name: 'TARGET_HOST', defaultValue: '', description: 'Target VM hostname or IP (e.g. 192.168.1.50)')
+    string(name: 'TARGET_PORT', defaultValue: '22', description: 'SSH port for target VM (default 22)')
   }
   environment {
     JAVA_HOME      = "/usr/lib/jvm/java-21-openjdk-amd64" // adjust if different on your node
@@ -9,7 +10,6 @@ pipeline {
     IMAGE          = "yuridevpro/todo-app-java-backend"
     DOCKER_CREDS   = "dockerhub-creds"
     SSH_CREDS      = "target-vm-ssh"
-    TARGET_PORT    = "2222"
     CONTAINER_NAME = "todo-backend"
     TAG            = "build-${env.BUILD_NUMBER}"
   }
@@ -43,7 +43,7 @@ pipeline {
         }
         sshagent(credentials: [SSH_CREDS]) {
           sh """
-            ssh -o StrictHostKeyChecking=no -p ${TARGET_PORT} deploy@${TARGET_HOST} '
+            ssh -o StrictHostKeyChecking=no -p ${params.TARGET_PORT} deploy@${TARGET_HOST} '
               docker pull ${IMAGE}:${TAG} &&
               docker stop ${CONTAINER_NAME} || true &&
               docker rm ${CONTAINER_NAME} || true &&
