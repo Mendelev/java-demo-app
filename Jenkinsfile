@@ -1,12 +1,14 @@
 pipeline {
   agent any
+  parameters {
+    string(name: 'TARGET_HOST', defaultValue: '', description: 'Target VM hostname or IP (e.g. 192.168.1.50)')
+  }
   environment {
     JAVA_HOME      = "/usr/lib/jvm/java-21-openjdk-amd64" // adjust if different on your node
     PATH           = "${JAVA_HOME}/bin:${PATH}"
     IMAGE          = "yuridevpro/todo-app-java-backend"
     DOCKER_CREDS   = "dockerhub-creds"
     SSH_CREDS      = "target-vm-ssh"
-    TARGET_HOST    = "<TARGET_VM_IP>"
     TARGET_PORT    = "2222"
     CONTAINER_NAME = "todo-backend"
     TAG            = "build-${env.BUILD_NUMBER}"
@@ -34,6 +36,11 @@ pipeline {
     }
     stage('Deploy to Target VM') {
       steps {
+        script {
+          if (!env.TARGET_HOST?.trim()) {
+            error "TARGET_HOST is not set. Provide it as a build parameter."
+          }
+        }
         sshagent(credentials: [SSH_CREDS]) {
           sh """
             ssh -o StrictHostKeyChecking=no -p ${TARGET_PORT} deploy@${TARGET_HOST} '
