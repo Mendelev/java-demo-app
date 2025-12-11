@@ -60,6 +60,7 @@ pipeline {
               export IMAGE_TAG=${TAG}
               export ALLOWED_ORIGINS="http://${TARGET_HOST}:8081,http://${TARGET_HOST}"
               export VITE_API_URL="http://${TARGET_HOST}:8080"
+              docker compose -f /tmp/todoapp-compose.deploy.yml down &&
               docker compose -f /tmp/todoapp-compose.deploy.yml pull &&
               docker compose -f /tmp/todoapp-compose.deploy.yml up -d
             '
