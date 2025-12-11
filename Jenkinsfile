@@ -41,9 +41,9 @@ pipeline {
             error "TARGET_HOST is not set. Provide it as a build parameter."
           }
         }
-        sshagent(credentials: [SSH_CREDS]) {
+        withCredentials([sshUserPrivateKey(credentialsId: SSH_CREDS, keyFileVariable: 'SSH_KEY', usernameVariable: 'SSH_USER')]) {
           sh """
-            ssh -o StrictHostKeyChecking=no -p ${params.TARGET_PORT} deploy@${TARGET_HOST} '
+            ssh -i ${SSH_KEY} -o StrictHostKeyChecking=no -p ${params.TARGET_PORT} ${SSH_USER}@${TARGET_HOST} '
               docker pull ${IMAGE}:${TAG} &&
               docker stop ${CONTAINER_NAME} || true &&
               docker rm ${CONTAINER_NAME} || true &&
