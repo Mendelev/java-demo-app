@@ -1,0 +1,242 @@
+pipeline:
+  name: jenkins_migration_pipeline
+  identifier: jenkins_migration_pipeline
+  projectIdentifier: javatodoapp
+  orgIdentifier: default
+  tags: {}
+  properties:
+    ci:
+      codebase:
+        connectorRef: githubmendelev
+        build: <+input>
+  variables:
+    - name: targetHost
+      type: String
+      description: Target VM host/IP
+      required: true
+      value: "20.109.52.203"
+    - name: targetPort
+      type: String
+      description: SSH port
+      required: true
+      value: "22"
+    - name: sshUser
+      type: String
+      description: SSH username on target host
+      required: true
+      value: "ubuntu"
+  stages:
+    - stage:
+        name: Build_and_Test
+        identifier: Build_and_Test
+        type: CI
+        spec:
+          cloneCodebase: true
+          platform:
+            os: Linux
+            arch: Amd64
+          runtime:
+            type: Cloud
+            spec: {}
+          execution:
+            steps:
+              - step:
+                  type: Run
+                  name: Unit_Tests
+                  identifier: Unit_Tests
+                  spec:
+                    image: maven:3.9-eclipse-temurin-21
+                    shell: Sh
+                    command: cd backend && mvn -B test
+                    reports:
+                      type: JUnit
+                      spec:
+                        paths:
+                          - "**/target/surefire-reports/*.xml"
+              - step:
+                  type: Background
+                  name: postgres
+                  identifier: postgres
+                  spec:
+                    image: postgres:15-alpine
+                    shell: Sh
+                    envVariables:
+                      POSTGRES_DB: todoapp_int
+                      POSTGRES_USER: todo
+                      POSTGRES_PASSWORD: todo
+                    portBindings:
+                      "5432": "5432"
+              - step:
+                  type: Run
+                  name: Integration_Tests
+                  identifier: Integration_Tests
+                  spec:
+                    image: maven:3.9-eclipse-temurin-21
+                    shell: Bash
+                    envVariables:
+                      TEST_DB_HOST: postgres
+                      TEST_DB_PORT: "5432"
+                      TEST_DB_NAME: todoapp_int
+                      TEST_DB_USER: todo
+                      TEST_DB_PASSWORD: todo
+                    command: |-
+                      echo "Waiting for Postgres..."
+                      for i in {1..30}; do
+                        if nc -z postgres 5432 2>/dev/null; then
+                          echo "Postgres is ready!"
+                          break
+                        fi
+                        echo "Attempt $i: Postgres not ready yet..."
+                        sleep 2
+                      done
+
+                      cd backend
+                      mvn -B -P integration-tests test
+                    reports:
+                      type: JUnit
+                      spec:
+                        paths:
+                          - "**/target/failsafe-reports/*.xml"
+                          - "**/target/surefire-reports/*.xml"
+              - step:
+                  type: Run
+                  name: Compute_Semver
+                  identifier: Compute_Semver
+                  spec:
+                    shell: Bash
+                    command: |-
+                      set -e
+                      REPO="Mendelev/java-demo-app"
+
+                      echo "Fetching tags from GitHub..."
+                      TAGS_RESPONSE=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+                        -H "Accept: application/vnd.github.v3+json" \
+                        "https://api.github.com/repos/$REPO/tags?per_page=100")
+
+                      LAST_TAG=$(echo "$TAGS_RESPONSE" | grep -o '"name": "[0-9]*\.[0-9]*\.[0-9]*"' | \
+                        cut -d'"' -f4 | sort -t. -k1,1n -k2,2n -k3,3n | tail -1)
+
+                      if [ -z "$LAST_TAG" ]; then
+                        LAST_TAG="0.0.0"
+                        echo "No existing semver tags found, starting from 0.0.0"
+                      else
+                        echo "Latest tag from GitHub: $LAST_TAG"
+                      fi
+
+                      MAJOR=$(echo "$LAST_TAG" | cut -d. -f1)
+                      MINOR=$(echo "$LAST_TAG" | cut -d. -f2)
+                      PATCH=$(echo "$LAST_TAG" | cut -d. -f3)
+                      PATCH=$((PATCH+1))
+
+                      NEW_TAG="${MAJOR}.${MINOR}.${PATCH}"
+                      echo "New tag: $NEW_TAG"
+                      export IMAGE_TAG="$NEW_TAG"
+                    envVariables:
+                      GITHUB_TOKEN: <+secrets.getValue("login-github")>
+                    outputVariables:
+                      - name: IMAGE_TAG
+              - step:
+                  type: BuildAndPushDockerRegistry
+                  name: BuildAndPush_Backend
+                  identifier: BuildAndPush_Backend
+                  spec:
+                    connectorRef: mendelev_dockerhub
+                    repo: yuridevpro/todo-app-java-backend
+                    tags:
+                      - <+execution.steps.Compute_Semver.output.outputVariables.IMAGE_TAG>
+                    context: backend
+                    dockerfile: backend/Dockerfile
+              - step:
+                  type: BuildAndPushDockerRegistry
+                  name: BuildAndPush_Frontend
+                  identifier: BuildAndPush_Frontend
+                  spec:
+                    connectorRef: mendelev_dockerhub
+                    repo: yuridevpro/todo-app-java-frontend
+                    tags:
+                      - <+execution.steps.Compute_Semver.output.outputVariables.IMAGE_TAG>
+                    context: frontend
+                    dockerfile: frontend/Dockerfile
+              - step:
+                  type: AquaTrivy
+                  name: SAST_Backend
+                  identifier: SAST_Backend
+                  spec:
+                    mode: orchestration
+                    config: default
+                    target:
+                      type: container
+                      detection: auto
+                    advanced:
+                      log:
+                        level: info
+                    privileged: true
+                    image:
+                      type: docker_v2
+                      tag: <+execution.steps.Compute_Semver.output.outputVariables.IMAGE_TAG>
+                      name: yuridevpro/todo-app-java-backend
+              - step:
+                  type: AquaTrivy
+                  name: SAST_Frontend
+                  identifier: SAST_Frontend
+                  spec:
+                    mode: orchestration
+                    config: default
+                    target:
+                      type: container
+                      detection: auto
+                    advanced:
+                      log:
+                        level: info
+                    privileged: true
+                    image:
+                      type: docker_v2
+                      tag: <+execution.steps.Compute_Semver.output.outputVariables.IMAGE_TAG>
+                      name: yuridevpro/todo-app-java-frontend
+    - stage:
+        name: Deploy_VM
+        identifier: Deploy_VM
+        type: Custom
+        spec:
+          execution:
+            steps:
+              - step:
+                  type: Run
+                  name: Deploy_via_SSH_and_Docker_Compose
+                  identifier: Deploy_via_SSH_and_Docker_Compose
+                  spec:
+                    shell: Bash
+                    envVariables:
+                      SSH_PRIVATE_KEY: <+secrets.getValue("target-vm-ssh-key")>
+                      SSH_USER: <+variable.sshUser>
+                      TARGET_HOST: <+variable.targetHost>
+                      TARGET_PORT: <+variable.targetPort>
+                      IMAGE_TAG: <+pipeline.stages.Build_and_Test.spec.execution.steps.Compute_Semver.output.outputVariables.IMAGE_TAG>
+                    command: |-
+                      set -euo pipefail
+
+                      echo "Preparing SSH key..."
+                      KEYFILE=$(mktemp)
+                      printf '%s\n' "$SSH_PRIVATE_KEY" > "$KEYFILE"
+                      chmod 600 "$KEYFILE"
+
+                      TMP_COMPOSE=/tmp/todoapp-compose.deploy.yml
+                      echo "Downloading compose file..."
+                      curl -fsSL "https://raw.githubusercontent.com/Mendelev/java-demo-app/main/docker-compose.deploy.yml" -o "$TMP_COMPOSE"
+
+                      echo "Copying compose file to target..."
+                      scp -i "$KEYFILE" -P "$TARGET_PORT" -o StrictHostKeyChecking=no "$TMP_COMPOSE" "$SSH_USER@$TARGET_HOST:/tmp/todoapp-compose.deploy.yml"
+
+                      echo "Deploying on target host $TARGET_HOST..."
+                      ssh -i "$KEYFILE" -p "$TARGET_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$TARGET_HOST" <<'EOF'
+                      set -euo pipefail
+                      export IMAGE_TAG="${IMAGE_TAG}"
+                      export ALLOWED_ORIGINS="http://${TARGET_HOST}:8081,http://${TARGET_HOST}"
+                      export VITE_API_URL="http://${TARGET_HOST}:8080"
+                      docker compose -f /tmp/todoapp-compose.deploy.yml down || true
+                      docker compose -f /tmp/todoapp-compose.deploy.yml pull
+                      docker compose -f /tmp/todoapp-compose.deploy.yml up -d
+                      docker compose -f /tmp/todoapp-compose.deploy.yml ps
+                      EOF
+
+                      echo "Deployment complete."
