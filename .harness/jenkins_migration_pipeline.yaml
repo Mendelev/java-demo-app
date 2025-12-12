@@ -14,7 +14,7 @@ pipeline:
       type: String
       description: Target VM host/IP
       required: true
-      value: "20.109.52.203"
+      value: 20.109.52.203
     - name: targetPort
       type: String
       description: SSH port
@@ -24,7 +24,7 @@ pipeline:
       type: String
       description: SSH username on target host
       required: true
-      value: "ubuntu"
+      value: ubuntu
   stages:
     - stage:
         name: Build_and_Test
@@ -205,13 +205,9 @@ pipeline:
                   name: Deploy_via_SSH_and_Docker_Compose
                   identifier: Deploy_via_SSH_and_Docker_Compose
                   spec:
+                    connectorRef: mendelev_dockerhub
+                    image: ubuntu:22.04
                     shell: Bash
-                    envVariables:
-                      SSH_PRIVATE_KEY: <+secrets.getValue("jenkins-server-key")>
-                      SSH_USER: <+variable.sshUser>
-                      TARGET_HOST: <+variable.targetHost>
-                      TARGET_PORT: <+variable.targetPort>
-                      IMAGE_TAG: <+pipeline.stages.Build_and_Test.spec.execution.steps.Compute_Semver.output.outputVariables.IMAGE_TAG>
                     command: |-
                       set -euo pipefail
 
@@ -240,3 +236,9 @@ pipeline:
                       EOF
 
                       echo "Deployment complete."
+                    envVariables:
+                      SSH_PRIVATE_KEY: <+secrets.getValue("jenkins-server-key")>
+                      SSH_USER: <+variable.sshUser>
+                      TARGET_HOST: <+variable.targetHost>
+                      TARGET_PORT: <+variable.targetPort>
+                      IMAGE_TAG: <+pipeline.stages.Build_and_Test.spec.execution.steps.Compute_Semver.output.outputVariables.IMAGE_TAG>
