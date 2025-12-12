@@ -207,7 +207,7 @@ pipeline:
                   spec:
                     shell: Bash
                     envVariables:
-                      SSH_PRIVATE_KEY: <+secrets.getValue("target-vm-ssh-key")>
+                      SSH_PRIVATE_KEY: <+secrets.getValue("jenkins-server-key")>
                       SSH_USER: <+variable.sshUser>
                       TARGET_HOST: <+variable.targetHost>
                       TARGET_PORT: <+variable.targetPort>
