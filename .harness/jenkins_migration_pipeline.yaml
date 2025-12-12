@@ -91,7 +91,7 @@ pipeline:
                       done
 
                       cd backend
-                      mvn -B -P integration-tests test
+                      mvn -B verify -P integration-tests
                     reports:
                       type: JUnit
                       spec:
@@ -103,6 +103,7 @@ pipeline:
                   name: Compute_Semver
                   identifier: Compute_Semver
                   spec:
+                    image: alpine/curl:latest
                     shell: Bash
                     command: |-
                       set -e
@@ -215,8 +216,15 @@ pipeline:
 
                           echo "Preparing SSH key..."
                           KEYFILE=$(mktemp)
-                          printf '%s\n' "$SSH_PRIVATE_KEY" > "$KEYFILE"
+                          echo "$SSH_PRIVATE_KEY" > "$KEYFILE"
                           chmod 600 "$KEYFILE"
+                          
+                          # Validate SSH key format
+                          if ! grep -q "BEGIN.*PRIVATE KEY" "$KEYFILE"; then
+                            echo "ERROR: SSH key appears to be malformed or missing header"
+                            cat "$KEYFILE"
+                            exit 1
+                          fi
 
                           TMP_COMPOSE=/tmp/todoapp-compose.deploy.yml
                           echo "Downloading compose file..."
@@ -237,6 +245,8 @@ pipeline:
                           docker compose -f /tmp/todoapp-compose.deploy.yml ps
                           EOF
 
+                          # Cleanup
+                          rm -f "$KEYFILE"
                           echo "Deployment complete."
                     environmentVariables:
                       - name: SSH_PRIVATE_KEY
@@ -244,13 +254,13 @@ pipeline:
                         value: SSH_Key_Jenkins_Machine
                       - name: SSH_USER
                         type: String
-                        value: ubuntu
+                        value: <+pipeline.variables.sshUser>
                       - name: TARGET_HOST
                         type: String
-                        value: 20.109.52.203
+                        value: <+pipeline.variables.targetHost>
                       - name: TARGET_PORT
                         type: String
-                        value: "22"
+                        value: <+pipeline.variables.targetPort>
                       - name: IMAGE_TAG
                         type: String
                         value: <+pipeline.stages.Build_and_Test.spec.execution.steps.Compute_Semver.output.outputVariables.IMAGE_TAG>
