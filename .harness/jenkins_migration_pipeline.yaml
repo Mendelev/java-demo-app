@@ -201,44 +201,58 @@ pipeline:
           execution:
             steps:
               - step:
-                  type: Run
-                  name: Deploy_via_SSH_and_Docker_Compose
-                  identifier: Deploy_via_SSH_and_Docker_Compose
+                  type: ShellScript
+                  name: ShellScript_1
+                  identifier: ShellScript_1
                   spec:
-                    connectorRef: mendelev_dockerhub
-                    image: ubuntu:22.04
                     shell: Bash
-                    command: |-
-                      set -euo pipefail
+                    executionTarget: {}
+                    source:
+                      type: Inline
+                      spec:
+                        script: |-
+                          set -euo pipefail
 
-                      echo "Preparing SSH key..."
-                      KEYFILE=$(mktemp)
-                      printf '%s\n' "$SSH_PRIVATE_KEY" > "$KEYFILE"
-                      chmod 600 "$KEYFILE"
+                          echo "Preparing SSH key..."
+                          KEYFILE=$(mktemp)
+                          printf '%s\n' "$SSH_PRIVATE_KEY" > "$KEYFILE"
+                          chmod 600 "$KEYFILE"
 
-                      TMP_COMPOSE=/tmp/todoapp-compose.deploy.yml
-                      echo "Downloading compose file..."
-                      curl -fsSL "https://raw.githubusercontent.com/Mendelev/java-demo-app/main/docker-compose.deploy.yml" -o "$TMP_COMPOSE"
+                          TMP_COMPOSE=/tmp/todoapp-compose.deploy.yml
+                          echo "Downloading compose file..."
+                          curl -fsSL "https://raw.githubusercontent.com/Mendelev/java-demo-app/main/docker-compose.deploy.yml" -o "$TMP_COMPOSE"
 
-                      echo "Copying compose file to target..."
-                      scp -i "$KEYFILE" -P "$TARGET_PORT" -o StrictHostKeyChecking=no "$TMP_COMPOSE" "$SSH_USER@$TARGET_HOST:/tmp/todoapp-compose.deploy.yml"
+                          echo "Copying compose file to target..."
+                          scp -i "$KEYFILE" -P "$TARGET_PORT" -o StrictHostKeyChecking=no "$TMP_COMPOSE" "$SSH_USER@$TARGET_HOST:/tmp/todoapp-compose.deploy.yml"
 
-                      echo "Deploying on target host $TARGET_HOST..."
-                      ssh -i "$KEYFILE" -p "$TARGET_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$TARGET_HOST" <<'EOF'
-                      set -euo pipefail
-                      export IMAGE_TAG="${IMAGE_TAG}"
-                      export ALLOWED_ORIGINS="http://${TARGET_HOST}:8081,http://${TARGET_HOST}"
-                      export VITE_API_URL="http://${TARGET_HOST}:8080"
-                      docker compose -f /tmp/todoapp-compose.deploy.yml down || true
-                      docker compose -f /tmp/todoapp-compose.deploy.yml pull
-                      docker compose -f /tmp/todoapp-compose.deploy.yml up -d
-                      docker compose -f /tmp/todoapp-compose.deploy.yml ps
-                      EOF
+                          echo "Deploying on target host $TARGET_HOST..."
+                          ssh -i "$KEYFILE" -p "$TARGET_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$TARGET_HOST" <<'EOF'
+                          set -euo pipefail
+                          export IMAGE_TAG="${IMAGE_TAG}"
+                          export ALLOWED_ORIGINS="http://${TARGET_HOST}:8081,http://${TARGET_HOST}"
+                          export VITE_API_URL="http://${TARGET_HOST}:8080"
+                          docker compose -f /tmp/todoapp-compose.deploy.yml down || true
+                          docker compose -f /tmp/todoapp-compose.deploy.yml pull
+                          docker compose -f /tmp/todoapp-compose.deploy.yml up -d
+                          docker compose -f /tmp/todoapp-compose.deploy.yml ps
+                          EOF
 
-                      echo "Deployment complete."
-                    envVariables:
-                      SSH_PRIVATE_KEY: <+secrets.getValue("jenkins-server-key")>
-                      SSH_USER: <+variable.sshUser>
-                      TARGET_HOST: <+variable.targetHost>
-                      TARGET_PORT: <+variable.targetPort>
-                      IMAGE_TAG: <+pipeline.stages.Build_and_Test.spec.execution.steps.Compute_Semver.output.outputVariables.IMAGE_TAG>
+                          echo "Deployment complete."
+                    environmentVariables:
+                      - name: SSH_PRIVATE_KEY
+                        type: Secret
+                        value: SSH_Key_Jenkins_Machine
+                      - name: SSH_USER
+                        type: String
+                        value: ubuntu
+                      - name: TARGET_HOST
+                        type: String
+                        value: 20.109.52.203
+                      - name: TARGET_PORT
+                        type: String
+                        value: "22"
+                      - name: IMAGE_TAG
+                        type: String
+                        value: <+pipeline.stages.Build_and_Test.spec.execution.steps.Compute_Semver.output.outputVariables.IMAGE_TAG>
+                    outputVariables: []
+                  timeout: 10m
