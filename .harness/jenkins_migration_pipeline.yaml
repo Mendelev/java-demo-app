@@ -60,8 +60,6 @@ pipeline:
                       POSTGRES_DB: todoapp_int
                       POSTGRES_USER: todo
                       POSTGRES_PASSWORD: todo
-                    portBindings:
-                      "5432": "5432"
               - step:
                   type: Run
                   name: Integration_Tests
