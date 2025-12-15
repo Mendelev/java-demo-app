@@ -104,7 +104,7 @@ pipeline:
                   identifier: Compute_Semver
                   spec:
                     image: alpine/curl:latest
-                    shell: Bash
+                    shell: Sh
                     command: |-
                       set -e
                       REPO="Mendelev/java-demo-app"
