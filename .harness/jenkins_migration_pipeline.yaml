@@ -218,7 +218,7 @@ pipeline:
                           KEYFILE=$(mktemp)
                           echo "$SSH_PRIVATE_KEY" > "$KEYFILE"
                           chmod 600 "$KEYFILE"
-                          
+
                           # Validate SSH key format
                           if ! grep -q "BEGIN.*PRIVATE KEY" "$KEYFILE"; then
                             echo "ERROR: SSH key appears to be malformed or missing header"
@@ -251,7 +251,7 @@ pipeline:
                     environmentVariables:
                       - name: SSH_PRIVATE_KEY
                         type: Secret
-                        value: SSH_Key_Jenkins_Machine
+                        value: SSH_key_jenkins_machine_2
                       - name: SSH_USER
                         type: String
                         value: <+pipeline.variables.sshUser>
