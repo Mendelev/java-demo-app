@@ -253,11 +253,11 @@ pipeline:
                           scp -i "$KEYFILE" -P "$TARGET_PORT" -o StrictHostKeyChecking=no "$TMP_COMPOSE" "$SSH_USER@$TARGET_HOST:/tmp/todoapp-compose.deploy.yml"
 
                           echo "Deploying on target host $TARGET_HOST..."
-                          ssh -i "$KEYFILE" -p "$TARGET_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$TARGET_HOST" <<'EOF'
+                          ssh -i "$KEYFILE" -p "$TARGET_PORT" -o StrictHostKeyChecking=no "$SSH_USER@$TARGET_HOST" <<EOF
                           set -euo pipefail
-                          export IMAGE_TAG="${IMAGE_TAG}"
-                          export ALLOWED_ORIGINS="http://${TARGET_HOST}:8081,http://${TARGET_HOST}"
-                          export VITE_API_URL="http://${TARGET_HOST}:8080"
+                          export IMAGE_TAG="$IMAGE_TAG"
+                          export ALLOWED_ORIGINS="http://$TARGET_HOST:8081,http://$TARGET_HOST"
+                          export VITE_API_URL="http://$TARGET_HOST:8080"
                           docker compose -f /tmp/todoapp-compose.deploy.yml down || true
                           docker compose -f /tmp/todoapp-compose.deploy.yml pull
                           docker compose -f /tmp/todoapp-compose.deploy.yml up -d
