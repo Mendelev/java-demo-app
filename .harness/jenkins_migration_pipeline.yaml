@@ -278,7 +278,7 @@ pipeline:
                     environmentVariables:
                       - name: SSH_PRIVATE_KEY
                         type: Secret
-                        value: SSH_Key_Jenkins_Machine
+                        value: SSH_key_jenkins_machine_2
                       - name: SSH_USER
                         type: String
                         value: <+pipeline.variables.sshUser>
