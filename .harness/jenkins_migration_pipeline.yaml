@@ -36,8 +36,9 @@ pipeline:
             os: Linux
             arch: Amd64
           runtime:
-            type: Cloud
-            spec: {}
+            type: Docker
+            spec:
+              harnessImageConnectorRef: dockerhubcreds
           execution:
             steps:
               - step:
@@ -216,33 +217,33 @@ pipeline:
 
                           echo "Preparing SSH key..."
                           KEYFILE=$(mktemp)
-                          
+
                           # Harness stores secrets as single line, need to restore newlines
                           # Replace literal \n with actual newlines
                           echo "$SSH_PRIVATE_KEY" | sed 's/\\n/\n/g' > "$KEYFILE"
-                          
+
                           chmod 600 "$KEYFILE"
-                          
+
                           # Debug: Show key format (first/last lines only for security)
                           echo "Key format check:"
                           head -n 1 "$KEYFILE"
                           echo "... (key content hidden) ..."
                           tail -n 1 "$KEYFILE"
                           echo "Key line count: $(wc -l < "$KEYFILE")"
-                          
+
                           # Validate SSH key format
                           if ! grep -q "BEGIN.*PRIVATE KEY" "$KEYFILE"; then
                             echo "ERROR: SSH key appears to be malformed or missing header"
                             exit 1
                           fi
-                          
+
                           # Test the key file with ssh-keygen
                           if ! ssh-keygen -l -f "$KEYFILE" > /dev/null 2>&1; then
                             echo "ERROR: SSH key validation failed with ssh-keygen"
                             echo "This usually means the key format is corrupted"
                             exit 1
                           fi
-                          
+
                           echo "SSH key validation passed!"
 
                           TMP_COMPOSE=/tmp/todoapp-compose.deploy.yml
