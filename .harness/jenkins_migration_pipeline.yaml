@@ -32,13 +32,6 @@ pipeline:
         type: CI
         spec:
           cloneCodebase: true
-          platform:
-            os: Linux
-            arch: Amd64
-          runtime:
-            type: Docker
-            spec:
-              harnessImageConnectorRef: dockerhubcreds
           execution:
             steps:
               - step:
@@ -60,6 +53,7 @@ pipeline:
                   name: postgres
                   identifier: postgres
                   spec:
+                    connectorRef: dockerhubcreds
                     image: postgres:15-alpine
                     shell: Sh
                     envVariables:
@@ -73,14 +67,9 @@ pipeline:
                   name: Integration_Tests
                   identifier: Integration_Tests
                   spec:
+                    connectorRef: dockerhubcreds
                     image: maven:3.9-eclipse-temurin-21
                     shell: Bash
-                    envVariables:
-                      TEST_DB_HOST: postgres
-                      TEST_DB_PORT: "5432"
-                      TEST_DB_NAME: todoapp_int
-                      TEST_DB_USER: todo
-                      TEST_DB_PASSWORD: todo
                     command: |-
                       echo "Waiting for Postgres..."
                       for i in {1..30}; do
@@ -100,6 +89,12 @@ pipeline:
                         paths:
                           - "**/target/failsafe-reports/*.xml"
                           - "**/target/surefire-reports/*.xml"
+                    envVariables:
+                      TEST_DB_HOST: postgres
+                      TEST_DB_PORT: "5432"
+                      TEST_DB_NAME: todoapp_int
+                      TEST_DB_USER: todo
+                      TEST_DB_PASSWORD: todo
               - step:
                   type: Run
                   name: Compute_Semver
@@ -199,7 +194,18 @@ pipeline:
                       type: docker_v2
                       tag: <+execution.steps.Compute_Semver.output.outputVariables.IMAGE_TAG>
                       name: yuridevpro/todo-app-java-frontend
+          infrastructure:
+            type: KubernetesDirect
+            spec:
+              connectorRef: myk8slocaconnector
+              namespace: default
+              automountServiceAccountToken: true
+              nodeSelector: {}
+              harnessImageConnectorRef: dockerhubcreds
+              os: Linux
         description: ""
+        delegateSelectors:
+          - kubernetes-delegate
     - stage:
         name: Deploy_VM
         identifier: Deploy_VM
@@ -291,3 +297,10 @@ pipeline:
                         value: <+pipeline.stages.Build_and_Test.spec.execution.steps.Compute_Semver.output.outputVariables.IMAGE_TAG>
                     outputVariables: []
                   timeout: 10m
+          environment:
+            environmentRef: myk8slocal
+            deployToAll: false
+            infrastructureDefinitions:
+              - identifier: infraestrutucrek8slocal
+        delegateSelectors:
+          - kubernetes-delegate
