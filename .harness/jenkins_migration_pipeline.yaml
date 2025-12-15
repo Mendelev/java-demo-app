@@ -46,6 +46,7 @@ pipeline:
                   name: Unit_Tests
                   identifier: Unit_Tests
                   spec:
+                    connectorRef: dockerhubcreds
                     image: maven:3.9-eclipse-temurin-21
                     shell: Sh
                     command: cd backend && mvn -B test
@@ -104,6 +105,7 @@ pipeline:
                   name: Compute_Semver
                   identifier: Compute_Semver
                   spec:
+                    connectorRef: dockerhubcreds
                     image: alpine/curl:latest
                     shell: Sh
                     command: |-
@@ -137,6 +139,8 @@ pipeline:
                       GITHUB_TOKEN: <+secrets.getValue("login-github")>
                     outputVariables:
                       - name: IMAGE_TAG
+                        type: String
+                        value: IMAGE_TAG
               - step:
                   type: BuildAndPushDockerRegistry
                   name: BuildAndPush_Backend
@@ -195,6 +199,7 @@ pipeline:
                       type: docker_v2
                       tag: <+execution.steps.Compute_Semver.output.outputVariables.IMAGE_TAG>
                       name: yuridevpro/todo-app-java-frontend
+        description: ""
     - stage:
         name: Deploy_VM
         identifier: Deploy_VM
