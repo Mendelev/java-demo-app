@@ -217,17 +217,9 @@ pipeline:
                           echo "Preparing SSH key..."
                           KEYFILE=$(mktemp)
                           
-                          # Check if key is base64 encoded (for troubleshooting)
-                          if echo "$SSH_PRIVATE_KEY" | grep -q "^-----BEGIN"; then
-                            # Key is in plain text format - write with -e to interpret \n
-                            echo -e "$SSH_PRIVATE_KEY" > "$KEYFILE"
-                          else
-                            # Key might be base64 encoded
-                            echo "$SSH_PRIVATE_KEY" | base64 -d > "$KEYFILE" 2>/dev/null || {
-                              echo "ERROR: Key is neither plain text nor valid base64"
-                              exit 1
-                            }
-                          fi
+                          # Harness stores secrets as single line, need to restore newlines
+                          # Replace literal \n with actual newlines
+                          echo "$SSH_PRIVATE_KEY" | sed 's/\\n/\n/g' > "$KEYFILE"
                           
                           chmod 600 "$KEYFILE"
                           
