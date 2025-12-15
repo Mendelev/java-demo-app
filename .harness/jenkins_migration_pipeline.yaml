@@ -60,19 +60,20 @@ pipeline:
                       POSTGRES_DB: todoapp_int
                       POSTGRES_USER: todo
                       POSTGRES_PASSWORD: todo
+                    ports:
+                      - 5432
               - step:
                   type: Run
                   name: Integration_Tests
                   identifier: Integration_Tests
                   spec:
                     connectorRef: dockerhubcreds
-                    image: maven:3.9-eclipse-temurin-21
-                    shell: Bash
                     command: |-
                       echo "Waiting for Postgres..."
-                      for i in {1..30}; do
-                        if nc -z postgres 5432 2>/dev/null; then
+                      for i in {1..60}; do
+                        if nc -z localhost 5432 2>/dev/null; then
                           echo "Postgres is ready!"
+                          sleep 3
                           break
                         fi
                         echo "Attempt $i: Postgres not ready yet..."
@@ -81,17 +82,19 @@ pipeline:
 
                       cd backend
                       mvn -B verify -P integration-tests
+                      cd backend
+                      mvn -B verify -P integration-tests
                     reports:
                       type: JUnit
                       spec:
                         paths:
                           - "**/target/failsafe-reports/*.xml"
-                          - "**/target/surefire-reports/*.xml"
                     envVariables:
-                      TEST_DB_HOST: postgres
+                      TEST_DB_HOST: localhost
                       TEST_DB_PORT: "5432"
                       TEST_DB_NAME: todoapp_int
                       TEST_DB_USER: todo
+                      TEST_DB_PASSWORD: todo
                       TEST_DB_PASSWORD: todo
               - step:
                   type: Run
