@@ -216,15 +216,42 @@ pipeline:
 
                           echo "Preparing SSH key..."
                           KEYFILE=$(mktemp)
-                          echo "$SSH_PRIVATE_KEY" > "$KEYFILE"
+                          
+                          # Check if key is base64 encoded (for troubleshooting)
+                          if echo "$SSH_PRIVATE_KEY" | grep -q "^-----BEGIN"; then
+                            # Key is in plain text format - write with -e to interpret \n
+                            echo -e "$SSH_PRIVATE_KEY" > "$KEYFILE"
+                          else
+                            # Key might be base64 encoded
+                            echo "$SSH_PRIVATE_KEY" | base64 -d > "$KEYFILE" 2>/dev/null || {
+                              echo "ERROR: Key is neither plain text nor valid base64"
+                              exit 1
+                            }
+                          fi
+                          
                           chmod 600 "$KEYFILE"
+                          
+                          # Debug: Show key format (first/last lines only for security)
+                          echo "Key format check:"
+                          head -n 1 "$KEYFILE"
+                          echo "... (key content hidden) ..."
+                          tail -n 1 "$KEYFILE"
+                          echo "Key line count: $(wc -l < "$KEYFILE")"
                           
                           # Validate SSH key format
                           if ! grep -q "BEGIN.*PRIVATE KEY" "$KEYFILE"; then
                             echo "ERROR: SSH key appears to be malformed or missing header"
-                            cat "$KEYFILE"
                             exit 1
                           fi
+                          
+                          # Test the key file with ssh-keygen
+                          if ! ssh-keygen -l -f "$KEYFILE" > /dev/null 2>&1; then
+                            echo "ERROR: SSH key validation failed with ssh-keygen"
+                            echo "This usually means the key format is corrupted"
+                            exit 1
+                          fi
+                          
+                          echo "SSH key validation passed!"
 
                           TMP_COMPOSE=/tmp/todoapp-compose.deploy.yml
                           echo "Downloading compose file..."
