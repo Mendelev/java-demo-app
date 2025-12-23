@@ -1,0 +1,80 @@
+pipeline:
+  name: maven_artifactory_k8s
+  identifier: maven_artifactory_k8s
+  projectIdentifier: javatodoapp
+  orgIdentifier: default
+  tags: {}
+  properties:
+    ci:
+      codebase:
+        connectorRef: githubmendelev
+        build: <+input>
+  stages:
+    - stage:
+        name: Build_and_Deploy
+        identifier: Build_and_Deploy
+        description: Build Maven artifact and deploy to JFrog Artifactory
+        type: CI
+        spec:
+          cloneCodebase: true
+          infrastructure:
+            type: KubernetesDirect
+            spec:
+              connectorRef: myk8slocaconnector
+              namespace: default
+              automountServiceAccountToken: true
+              nodeSelector: {}
+              harnessImageConnectorRef: dockerhubcreds
+              os: Linux
+          execution:
+            steps:
+              - step:
+                  type: Run
+                  name: Generate_Maven_Settings
+                  identifier: Generate_Maven_Settings
+                  spec:
+                    connectorRef: dockerhubcreds
+                    image: maven:3.9-eclipse-temurin-21
+                    shell: Sh
+                    command: |
+                      mkdir -p ~/.m2
+                      cat > ~/.m2/settings.xml << 'EOF'
+                      <?xml version="1.0" encoding="UTF-8"?>
+                      <settings xmlns="http://maven.apache.org/SETTINGS/1.2.0"
+                                xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                                xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.2.0 https://maven.apache.org/xsd/settings-1.2.0.xsd">
+                        <servers>
+                          <server>
+                            <id>snapshots</id>
+                            <username><+secrets.getValue("jfrog_username")></username>
+                            <password><+secrets.getValue("jfrog_token")></password>
+                          </server>
+                        </servers>
+                      </settings>
+                      EOF
+                      echo "Maven settings.xml generated successfully"
+              - step:
+                  type: Run
+                  name: Unit_Tests
+                  identifier: Unit_Tests
+                  spec:
+                    connectorRef: dockerhubcreds
+                    image: maven:3.9-eclipse-temurin-21
+                    shell: Sh
+                    command: cd backend && mvn -B test
+                    reports:
+                      type: JUnit
+                      spec:
+                        paths:
+                          - "**/target/surefire-reports/*.xml"
+              - step:
+                  type: Run
+                  name: Deploy_to_Artifactory
+                  identifier: Deploy_to_Artifactory
+                  spec:
+                    connectorRef: dockerhubcreds
+                    image: maven:3.9-eclipse-temurin-21
+                    shell: Sh
+                    command: cd backend && mvn -B deploy -DskipTests
+        delegateSelectors:
+          - kubernetes-delegate

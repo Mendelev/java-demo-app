@@ -88,6 +88,14 @@
         </plugins>
     </build>
 
+    <distributionManagement>
+        <snapshotRepository>
+            <id>snapshots</id>
+            <name>mt-frontend-ep-java-demo-libs-snapshot-snapshots</name>
+            <url>https://trialq6tyqg.jfrog.io/artifactory/java-demo-libs-snapshot</url>
+        </snapshotRepository>
+    </distributionManagement>
+
     <profiles>
         <profile>
             <id>integration-tests</id>
